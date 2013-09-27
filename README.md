@@ -1,11 +1,6 @@
 Tools that speed up statistical analysis using Linux command line. 
 ==================================================================
 
-`r` - a simplified command line R environment
--------------------------------------------
-
-The program is a simple wrapper to use R functions on a single text file from the command line. The program generates and runs R script that: (a) loads up data from the file as a single data frame assuming default parameters (b) runs R functions, described by preset options or passed directly to the script. 
-
 `merge` - merge files by common first column
 ------------------------------------------
 
@@ -14,7 +9,10 @@ The program assumes that each file consists of lines arranged in a common patter
 `pairs` - merge two files by common first column and perform an operation on them
 ------------------------------------------
 
-Merge the lines from each file into a single output based on the common first column. The program assumes that each file consists of lines arranged in a common pattern of a 'key', which is separated from the 'value' by a white space. Pairs will combine lines of these two files under the common 'key' and then perform an operation on the two values.  
+Merge the lines from each file into a single output based on the common first column. The program assumes that each file consists of lines arranged in a common pattern of a 'key', which is separated from the 'value' by a white space. Pairs will combine lines of these two files under the common 'key' and then perform an operation on the two values.
 
+`r` - a simplified command line R environment
+-------------------------------------------
 
+The program is a simple wrapper to use R functions on a single text file from the command line. The program generates and runs R script that: (a) loads up data from the file as a single data frame assuming default parameters (b) runs R functions, described by preset options or passed directly to the script. 
 
