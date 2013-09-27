@@ -1,0 +1,282 @@
+#!/usr/bin/perl -w
+
+# Author: T. Religa
+# Licence: GNU Public Licence
+# Date: 2004-02-26
+
+=head1 NAME
+
+pairs - merge two files by common first column and perform an operation on them
+
+=head1 SYNOPSIS
+
+pairs I<command> I<[options]> I<< file1 file2 >>
+
+=head1 DESCRIPTION
+
+Merge the lines from each file into a single output based on the common first column. 
+
+The program assumes that each file consists of lines arranged in a common pattern of a 'key', which is separated from the 'value' by a white space. Pairs will combine lines of these two files under the common 'key' and then perform an operation on the two values.  
+
+=head1 OPTIONS
+
+One has to specify a command to be performed by the program, followed by two file names. Options are optional. 
+
+=head2 Commands
+
+=over 4
+
+=item B<same>
+
+Outputs the values for matching keys on the same row. This is the simplest command. 
+
+=item B<add>
+
+Sum of the values.
+
+=item B<avg>
+
+Average of both values.
+
+=item B<sub>
+
+Substract the values. 
+
+=item B<add2> 
+
+Sum squared of the values.
+
+=item B<ratio>
+
+Ratio of two values.
+
+=item B<sub2>
+
+Difference squared of both values.
+
+=item B<subrat>
+
+Difference of values over their average
+
+=back
+
+=head2 Options
+
+The program accepts the following options:
+
+=over 4
+
+=item B<-k>
+
+Print keys in front of the values.
+
+=item B<-o> 
+
+Omit the empty lines and lines starting with #.
+
+=item B<-v> 
+
+Be verbose.
+
+=item B<-h> 
+
+Print out this helpful help.
+
+=back
+
+=head1 EXAMPLES
+
+=head2 Dataset
+
+=over 2
+
+=item For the examples, the following two datasets will be used: 
+
+C<< cat 1.dat 		E<10> E<8>
+A 1 			E<10> E<8>
+B 2 			E<10> E<8>
+C 3 			E<10> E<8>
+D 4 			E<10> E<8>
+>>
+
+C<< cat 2.dat 		E<10> E<8>
+A 11 			E<10> E<8>
+C 13 			E<10> E<8>
+D 14 			E<10> E<8>
+>>
+
+=back
+
+=head2 Examples
+
+=over 2
+
+=item Combine two datasets and show the key.
+
+Only three lines will be returned and no keys printed (line with 'B' will be missing, since it is not present in the second file):
+
+C<< pairs same -k 1.dat 2.dat >>
+
+=item Combine two datasets and substract the two values (it should print '10' in all rows):
+
+C<< pairs sub -k 2.dat 1.dat >>
+
+=item Combine two datasets. Then calculate correlation coefficient between them:
+
+C<< pairs same 1.dat 2.dat > all.dat >>
+ 
+Then, quick statistical analysis can be performed on the datasets using C<r> command:
+
+C<< r summary all.dat >>
+
+=back
+
+=head1 SEE ALSO
+
+cut(1) merge(1) paste(1) perl(1) r(1) R(1) 
+
+=head1 AUTHOR
+
+T. Religa
+
+=head1 VERSION
+
+  0.1
+
+=cut
+
+
+
+$operation = shift @ARGV;
+
+use Getopt::Std;
+
+getopts('hvko', \%opts);
+
+$file_name1 = $ARGV[0];
+$file_name2 = $ARGV[1];
+
+&usage() unless $operation;
+&usage() unless $file_name1;
+&usage() unless $file_name2;
+&usage() if $opts{"h"};
+$verbose = $opts{"v"};
+$print_key = $opts{"k"};
+$omit = $opts{"o"};
+
+
+
+@order1=();
+
+open(FILE1, "<$file_name1") or die("$0: Can't open '$file_name1' for reading.");
+while (<FILE1>)
+  {
+    next if ((/^\s*$/ || /^#/) && $omit); #Omit empty lines and lines starting with #
+    chomp;s/^\s+//;
+    ($key, $value) = split (/\s+/, $_, 2) or warn("$0: Can't split line: '$_' in file '$file_name1'\n");
+    warn ("$0: Key '$key' already exists with value '$file1{$key}'. Replacing with value '$value'.\n") if (exists $file1{$key});
+    push(@order1, $key) if (!exists $file1{$key});
+    $file1{$key} = $value;
+  }
+die("$0: Empty file '$file_name1'.\n") unless ("".(keys %file1));
+close(FILE1);
+open(FILE2, "<$file_name2") or die("$0: Can't open '$file_name2' for reading.");
+while (<FILE2>)
+  {
+    next if ((/^\s*$/ || /^#/) && $omit); #Omit empty lines and lines starting with #
+    chomp;s/^\s+//;
+    ($key, $value) = split (/\s+/, $_, 2) or warn("$0: Can't split line: '$_' in file '$file_name2'\n");
+    warn ("$0: Key '$key' already exists with value '$file2{$key}'. Replacing with value '$value'.\n") if (exists $file2{$key});
+    $file2{$key} = $value;
+
+    warn("$0: Key '$key' exists in '$file_name2', but does not exist in '$file_name1'.\n") if ($verbose && !exists $file1{$key});
+
+  }
+die("$0: Empty file '$file_name2'.\n") unless ("".(keys %file2));
+close(FILE2);
+
+
+#foreach $key1 (keys %file1)
+foreach $key1 (@order1)
+  {
+    $value1 = $file1{$key1};
+    if (exists $file2{$key1})
+      {
+	$value2 = $file2{$key1};
+	print "$key1\t" if $print_key;
+	if ($operation eq "same")
+	  {
+	    print "$value1\t$value2\n";
+	  } 
+	elsif ($operation eq "add") 
+          {
+	    print "".($value1 + $value2)."\n";
+	  } 
+        elsif ($operation eq "avg") 
+          {
+            print "".(($value1 + $value2)/2)."\n";
+          }
+        elsif ($operation eq "sub2")
+          { 
+            print "".(($value1 - $value2)**2)."\n";
+          }
+        elsif ($operation eq "subrat")
+          {
+            if (($value1 + $value2)!=0) {
+             print "".(2*($value1 - $value2)/($value1 + $value2))."\n";
+            } else {
+             warn("$0: Division will result in error, reporting 'NA' for key '$key1'\n");
+             print "NA\n";
+            }
+          }
+        elsif ($operation eq "ratio")
+          {
+            if (($value2)!=0) {
+             print "".($value1/$value2)."\n";
+            } else {
+             warn("$0: Division will result in error, reporting 'NA' for key '$key1'\n");
+             print "NA\n";
+            }
+          }
+        elsif ($operation eq "add2")
+          {
+            print "".(($value1 + $value2)**2)."\n";
+          }
+	elsif ($operation eq "sub") 
+	  {
+	    print "".($value1 - $value2)."\n";
+	  } 
+	else 
+	  {
+	    die("$0: Invalid operation '$operation'.")
+	  }
+      }
+    else {
+      {
+	warn("$0: Key '$key1' exists in '$file_name1', but does not exist in '$file_name2'.\n") if $verbose;
+
+      }
+    }
+  }
+
+
+sub usage()
+  {
+    die("Usage: $0 operation [options] file1 file2
+This program will print out, add or substract the rows in a file where the values in the first column (called key) match. 
+Possible operations: 
+ same - outputs the matching values on the same row
+ add - adds the values
+ avg - average of both values
+ sub - substracts the values
+ add2 - sum squared of the values
+ ratio - ratio of the values
+ sub2 - difference squared of both values
+ subrat - difference of the values over their average
+ -o omit empty lines and lines starting with #
+ -k print key
+ -v be verbose
+ -h print out this helpful help
+    for full help, type: 'perldoc $0'
+");
+  }
