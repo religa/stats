@@ -4,7 +4,7 @@
 # Licence: GPL
 # Date: 2012-03-11
 #
-# This 'smallR' program will execute a number of simple commands in R on the dataset.
+# This 'simpleR' program will execute a number of simple commands in R on the dataset.
 #
 
 =head1 NAME
@@ -290,7 +290,7 @@ unlink($script_name);
 
 # Show the plot, if wanted
 if ($display && $plot) {
- my $pdf_viewer = `which acroread 2>/dev/null || which evince 2>/dev/null`;
+ my $pdf_viewer = `which acroread 2>/dev/null || which evince 2>/dev/null || which open 2>/dev/null`;
  chomp $pdf_viewer;
  die("$0: PDF viewer not found on the computer.\n") unless $pdf_viewer;
  `$pdf_viewer "$plot_out"`;
@@ -301,7 +301,7 @@ sub usage()
     my $txt="";
     if (@_) {$txt = "ERROR: @_\n";} 
     die("Usage: $0 [options] <files>
-The program will execute simple commands R.
+The program will execute simple commands in R.
  -k columns that should be taken into account
  -a attach the dataset to the environment
  -r force the first row to contain the row names 
