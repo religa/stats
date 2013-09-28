@@ -4,7 +4,7 @@
 # Licence: GPL
 # Date: 2012-03-11
 #
-# This 'smallR' program will execute a number of simple commands in R on the dataset.
+# This 'simpleR' program will execute a number of simple commands in R on the dataset.
 #
 
 =head1 NAME
