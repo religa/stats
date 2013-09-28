@@ -13,9 +13,9 @@ r - a simplified command line R environment
 
 =head1 SYNOPSIS
 
-r [options] filename
+r I<[options]> I<filename>
 
-r [options] [command] filename
+r I<[options]> I<[command]> I<filename>
 
 =head1 DESCRIPTION
 
@@ -29,12 +29,15 @@ There are two ways to use it (which can be combined):
  (1) execute one of the preset options 
  (2) run directly a R command
 
-  $ r [options] filename
-See L<"OPTIONS"> for details on the command line switches supported.
+r I<[options]> I<filename>
 
-  $ r [command] filename
+See L<OPTIONS> for details on the command line switches supported.
 
-It can be any command supported by R, which takes a single data frame as an argument. The script will just add the name of the data frame to it. For example, for the 'summary' command the script will execute 'summary(d)'.
+r I<[command]> I<filename>
+
+It can be any command supported by R, which takes a single data frame as an argument. The script will just add the name of the data frame to it. For example, for the 'summary' command the script will execute 'C<summary(d)>'.
+
+The I<filename> can be any file present on the file system or I<->, to denote STDIN. This way, C<r> can be used as part of the Unix pipeline. See L<EXAMPLES> for more details.   
 
 =head1 OPTIONS
 
@@ -51,6 +54,11 @@ Execute R line: C<< d <- d[,columns] >>.
 
 Attach the dataset to the environment. E<10> E<8>
 Execute R line: C<< attach(d) >>.
+
+=item B<-r>
+
+Force the first row to have the row names.
+Execute R line in C<< read.table >>: C<< row.names=1 >>.
 
 =item B<-e> I<command>
 
@@ -75,7 +83,7 @@ Display plotted dataset (using acroread or evince).
 
 =item B<-v>
 
-Enable verbose output
+Enable verbose output (goes to STDERR (i.e. 2nd file descriptor).
 
 =item B<-h>
 
@@ -111,11 +119,16 @@ tomek@localhost:~$ head -n3 iris.txt 	E<10> E<8>
 
 C<< r summary iris.txt >>
 
-It was produced by C<r> by generating and executing the following R code: E<10> E<8>
+It was produced by C<r> by generating and executing the following R code:
+
 C<< 
-d <- read.table('iris.txt') E<10> E<8>
+d <- read.table('iris.txt'); E<10> E<8>
 summary(d) >>
 
+=item The same as above, but using Linux pipes:
+
+C<< cat iris.txt | r summary - >>  E<10> E<8>
+C<< r summary - < iris.txt >>
 
 =item Summary of the first two columns of the dataset, while showing the executed R script:
 
@@ -139,6 +152,11 @@ r -e 'attach(d); lm(Sepal.Length ~ Petal.Length)' iris.txt >>
 
 C<< r -ae 't.test(Sepal.Length, Petal.Length)' iris.txt >>
 
+
+=item Develop a script to show summary of the dataset, pass it to C<R> and execute it, while discarding the C<r> output. Tested under Bash.
+
+C<< r -v summary iris.txt 3>&1 1>&2 2>&3 2>/dev/null | R >>
+
 =back
 
 =head1 SEE ALSO
@@ -160,7 +178,7 @@ use warnings;
 use Getopt::Std;
 
 my %opts;
-getopts('o:k:e:s:daplhvc', \%opts);
+getopts('o:k:e:s:daplrhvc', \%opts);
 
 &usage() if $opts{"h"};
 my $verbose = $opts{"v"} || 0;
@@ -170,18 +188,18 @@ my $attach = $opts{"a"};
 my $plot = $opts{"p"};
 my $keys = $opts{"k"} || "";
 my $sep = $opts{"s"} || "";
-#my $row_names = $opts{"r"} || "NULL"; 
+my $row_names = $opts{"r"}; 
 my $display = $opts{"d"};
 
 # Load up extra arguments
 my $file_name = "";
-my $cmd="";
+my $cmd_command="";
 my $argvlength=@ARGV+0;
 if ($argvlength==1) {
  $file_name = $ARGV[0];
 } elsif ($argvlength==2) {
- $cmd = $ARGV[0];
- $cmd = $cmd."(d)";
+ $cmd_command = $ARGV[0];
+ $cmd_command = $cmd_command."(d)";
  $file_name = $ARGV[1];
 } else {
  &usage();
@@ -193,11 +211,25 @@ if ($argvlength==1) {
 my $library_commands="";
 
 
-die("$0: Dataset '$file_name' does not exist.") unless (-e "$file_name");
+my $row_names_command="";
+$row_names_command=", row.names=1" if $row_names;
 
+my $table_command="";
+if ($file_name=~/^-$/) { # STDIN file
+ # There seem to be problems in R with picking up input from the STDIN
+ # Input seems to be 'missing'. This is the work-around.
+ $table_command = "# This loads the data from STDIN
+rL <- readLines(pipe('cat /dev/stdin'));
+tC <- textConnection(rL);
+d <- read.table(tC, sep='$sep' $row_names_command)"
+} else { # Standard file
+ die("$0: Dataset '$file_name' does not exist.") unless (-e "$file_name");
+ $table_command="d <- read.table('$file_name', sep='$sep' $row_names_command)";
+}
 
+my $key_command="";
 if ($keys) {
- $keys = "d <- d[,$keys]";  
+ $key_command = "d <- d[,$keys]";  
 }
 
 my $plot_command="";
@@ -214,15 +246,15 @@ $attach_command="attach(d)" if $attach;
 my $command=""; 
 $command = $command."
 $library_commands
-d <- read.table('$file_name', sep='$sep')
-$keys
-$cmd
+$table_command
+$key_command
+$cmd_command
 $attach_command
 $extra_command
 
 $plot_command
 ";
-print $command if $verbose;
+warn($command) if $verbose;
 
 my $Rscript=`which Rscript`; chomp $Rscript;
 die("$0: Could not find R") unless (length($Rscript));
@@ -256,6 +288,7 @@ sub usage()
 The program will execute simple commands R.
  -k columns that should be taken into account
  -a attach the dataset to the environment
+ -r force the first row to contain the row names 
  -e execute the specified R command after loading the dataset
  -s input record separator (default: white space)
  -p plot the dataset and save it as a pdf file
