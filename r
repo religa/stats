@@ -152,6 +152,9 @@ r -e 'attach(d); lm(Sepal.Length ~ Petal.Length)' iris.txt >>
 
 C<< r -ae 't.test(Sepal.Length, Petal.Length)' iris.txt >>
 
+=item Extract the first two columns of the dataset and save it as a new file:
+
+C<< r -k 1:2 write.table iris.txt > new.txt >>
 
 =item Develop a script to show summary of the dataset, pass it to C<R> and execute it, while discarding the C<r> output. Tested under Bash.
 
