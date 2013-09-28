@@ -4,7 +4,7 @@
 # Licence: GPL
 # Date: 2012-03-11
 #
-# This program will execute a number of simple commands in R on the dataset.
+# This 'smallR' program will execute a number of simple commands in R on the dataset.
 #
 
 =head1 NAME
@@ -125,10 +125,11 @@ C<<
 d <- read.table('iris.txt'); E<10> E<8>
 summary(d) >>
 
-=item The same as above, but using Linux pipes:
+=item The same as above, but using three different types of Linux redirection commands (pipe, standard input, named pipe):
 
-C<< cat iris.txt | r summary - >>  E<10> E<8>
-C<< r summary - < iris.txt >>
+(1) C<< cat iris.txt | r summary - >> 	E<10> E<8>
+(2) C<< r summary - < iris.txt >>	E<10> E<8>
+(3) C<< r summary <(cat iris.txt) >>	E<10> E<8>
 
 =item Summary of the first two columns of the dataset, while showing the executed R script:
 
@@ -217,6 +218,11 @@ my $library_commands="";
 my $row_names_command="";
 $row_names_command=", row.names=1" if $row_names;
 
+my $sep_command="";
+$sep_command=", sep='$sep'" if $sep;
+
+
+
 my $table_command="";
 if ($file_name=~/^-$/) { # STDIN file
  # There seem to be problems in R with picking up input from the STDIN
@@ -224,10 +230,16 @@ if ($file_name=~/^-$/) { # STDIN file
  $table_command = "# This loads the data from STDIN
 rL <- readLines(pipe('cat /dev/stdin'));
 tC <- textConnection(rL);
-d <- read.table(tC, sep='$sep' $row_names_command)"
+d <- read.table(tC $sep_command $row_names_command)";
+} elsif ($file_name=~/dev\/fd/) {
+ # The solution for named pipes seems to be the same as for STDIN?
+ $table_command = "# This loads the data from named pipe
+rL <- readLines(pipe('cat $file_name'));
+tC <- textConnection(rL);
+d <- read.table(tC $sep_command $row_names_command)";
 } else { # Standard file
  die("$0: Dataset '$file_name' does not exist.") unless (-e "$file_name");
- $table_command="d <- read.table('$file_name', sep='$sep' $row_names_command)";
+ $table_command="d <- read.table('$file_name' $sep_command $row_names_command)";
 }
 
 my $key_command="";
@@ -256,6 +268,7 @@ $attach_command
 $extra_command
 
 $plot_command
+quit()
 ";
 warn($command) if $verbose;
 
