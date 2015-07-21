@@ -11,6 +11,11 @@ The program assumes that each file consists of lines arranged in a common patter
 
 Merge the lines from each file into a single output based on the common first column. The program assumes that each file consists of lines arranged in a common pattern of a 'key', which is separated from the 'value' by a white space. Pairs will combine lines of these two files under the common 'key' and then perform an operation on the two values.
 
+`plot` - plot the files using gnuplot
+------------------------------------------
+
+Generate `gnuplot` input file and pass it to the graphics program to generate plot in postscript that can be opened in one of the graphics viewers. Perfect for fast data visualization on the command line. 
+
 `r` - a simplified command line R environment
 -------------------------------------------
 
